@@ -1,5 +1,7 @@
 package com.db.awmd.challenge.web;
 
+import java.util.UUID;
+
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,8 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.db.awmd.challenge.domain.Account;
 import com.db.awmd.challenge.exception.DuplicateAccountIdException;
+import com.db.awmd.challenge.exception.InvalidTransferException;
 import com.db.awmd.challenge.service.AccountsService;
 import com.db.awmd.challenge.web.request.TransferRequest;
+import com.db.awmd.challenge.web.request.TransferResponse;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -53,12 +57,16 @@ public class AccountsController {
   @PostMapping(path = "/transfers",  consumes = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<Object> transferMoney(@RequestBody @Valid TransferRequest req) {
     log.info("Handling TransferRequest {}", req);
+    TransferResponse res = null;
     try {
-      this.accountsService.transfer(req.getAccountFromId(), req.getAccountToId(), req.getAmount());
-    } catch(RuntimeException ex) {
+      UUID txnId = this.accountsService.transfer(req.getAccountFromId(), req.getAccountToId(), req.getAmount());
+      res = new TransferResponse(txnId.toString());
+      log.info("TransferRequest {} success.", req);
+    } catch(InvalidTransferException ex) {
+    	log.error("TransferRequest failed.", ex);
     	return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
-    return new ResponseEntity<>(HttpStatus.OK);
+    return new ResponseEntity<>(res, HttpStatus.OK);
   }
 
 }

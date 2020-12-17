@@ -1,6 +1,7 @@
 package com.db.awmd.challenge;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -10,6 +11,7 @@ import com.db.awmd.challenge.service.AccountsService;
 import com.db.awmd.challenge.service.NotificationService;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -70,8 +72,9 @@ public class AccountsServiceTest {
 	  Account account2 = new Account(uniqueId2);
 	  this.accountsService.createAccount(account2);
 	  
-	  this.accountsService.transfer(uniqueId1, uniqueId2, BigDecimal.TEN);
+	  UUID txnId = this.accountsService.transfer(uniqueId1, uniqueId2, BigDecimal.TEN);
 	  
+	  assertNotNull(txnId.toString());
 	  assertTrue(account1.getBalance().compareTo(new BigDecimal("90")) == 0);
 	  assertTrue(account2.getBalance().compareTo(new BigDecimal("10")) == 0);
   }

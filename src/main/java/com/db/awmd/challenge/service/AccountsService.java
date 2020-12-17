@@ -1,11 +1,13 @@
 package com.db.awmd.challenge.service;
 
 import com.db.awmd.challenge.domain.Account;
+import com.db.awmd.challenge.exception.InvalidTransferException;
 import com.db.awmd.challenge.repository.AccountsRepository;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,15 +34,15 @@ public class AccountsService {
     return this.accountsRepository.getAccount(accountId);
   }
   
-  public void transfer(String accountFromId, String accountToId, BigDecimal amount) {
+  public UUID transfer(String accountFromId, String accountToId, BigDecimal amount) {
 	  if(amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-		  throw new RuntimeException("Transfer amount must be positive.");
+		  throw new InvalidTransferException("Transfer amount must be positive.");
 	  }
 	  Account accountFrom = getAccount(accountFromId);
 	  Account accountTo = getAccount(accountToId);
 	  
 	  if(accountFrom == null || accountTo == null) {
-		  throw new RuntimeException(String.format("Non-existent account. accountFrom=%s accountTo=%s", accountFrom, accountTo));
+		  throw new InvalidTransferException(String.format("Non-existent account. accountFrom=%s accountTo=%s", accountFrom, accountTo));
 	  }
 	  
 	  //In concurrent env, ensure thread safety by acquiring locks on 2 accounts.
@@ -59,16 +61,18 @@ public class AccountsService {
 	  synchronized(lock1) {
 		  synchronized(lock2) {
 			  if(accountFrom.getBalance().compareTo(amount) < 0) {
-				  throw new RuntimeException(String.format("Insufficient balance in the account=%s, balance=%s, transfer=%s", accountFromId, accountFrom.getBalance().toString(), amount.toString()));
+				  throw new InvalidTransferException(String.format("Insufficient balance in the account=%s, balance=%s, transfer=%s", accountFromId, accountFrom.getBalance().toString(), amount.toString()));
 			  }
 			  accountFrom.setBalance(accountFrom.getBalance().subtract(amount));
 			  accountTo.setBalance(accountTo.getBalance().add(amount));
 		  }
 	  }
-	  
+	  UUID uid = UUID.randomUUID();
 	  //send notifications to both account holders
-	  String transferDescription = String.format("Amount=%s transferred FromAccountId=%s, ToAccountId=%s", amount.toString(), accountFromId, accountToId);
+	  String transferDescription = String.format("TxnId=%s Amount=%s transferred FromAccountId=%s, ToAccountId=%s", uid.toString(), amount.toString(), accountFromId, accountToId);
 	  this.notificationService.notifyAboutTransfer(accountFrom, transferDescription);
 	  this.notificationService.notifyAboutTransfer(accountTo, transferDescription);	  
+	  
+	  return uid;
   }
 }

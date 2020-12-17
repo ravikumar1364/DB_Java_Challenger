@@ -24,7 +24,7 @@ public class TransferRequest {
 	
 	@NotNull
 	@Min(value = 0, message = "Transfer amount must be positive.")
-    private BigDecimal amount;
+    private final BigDecimal amount;
 	
 	@JsonCreator
 	public TransferRequest(@JsonProperty("accountFromId") String accountFromId,
